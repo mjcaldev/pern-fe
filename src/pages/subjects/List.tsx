@@ -4,10 +4,28 @@ import { Search } from "lucide-react"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DEPARTMENTS_OPTIONS } from "@/constants"
+import { CreateButton } from "@/components/refine-ui/buttons/create"
+import { Subject } from "@/types"
 
 const SubjectsList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+
+  const subjectTable = useTable<Subject>({
+    columns: [],
+    refineCoreProps: {
+      resource: 'subjects',
+      pagination: {
+        pageSize: 10,
+        mode: 'server',
+        filters: {},
+        sorters: {}
+      },
+    }
+    
+  }
+  );
 
   return (
     <ListView>
@@ -38,11 +56,19 @@ const SubjectsList = () => {
                 <SelectItem value="all">
                   All Departments
                 </SelectItem>
+                {DEPARTMENTS_OPTIONS.map(department => (
+                  <SelectItem key={department.value} value={department.value}>
+                    {department.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <CreateButton />
           </div>
         </div>
       </div>
+
+      <DataTable table={subjectTable} />
     </ListView>
   )
 }
