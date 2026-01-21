@@ -16,6 +16,20 @@ const SubjectsList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
 
+  const departmentFilters = selectedDepartment === 'all' ? [] : [{
+    field: 'department',
+    operator: 'eq' as const,
+    value: selectedDepartment,
+  }];
+
+  const searchFilters = searchQuery ? [
+    {
+      field: 'name',
+      operator: 'contains' as const,
+      value: searchQuery,
+    }
+  ] : [];
+
   const subjectTable = useTable<Subject>({
     columns: useMemo<ColumnDef<Subject>[]>(() => [
       {
@@ -24,6 +38,29 @@ const SubjectsList = () => {
         size: 100,
         header: () => <p className="column-title ml-2">Code</p>,
         cell: ({ getValue }) => <Badge>{String(getValue())}</Badge>
+      },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        size: 200,
+        header: () => <p className="column-title ml-2">Name</p>,
+        cell: ({ getValue }) => <span className="text-foreground"><Badge>{String(getValue())}</Badge></span>,
+        filterFn: "includesString",
+      },
+      {
+        id: 'department',
+        accessorKey: 'department',
+        size: 150,
+        header: () => <p className="column-title ml-2">Department</p>,
+        cell: ({ getValue }) => <Badge variant="secondary">{String(getValue())}</Badge>,
+        filterFn: "includesString",
+      },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        size: 300,
+        header: () => <p className="column-title ml-2">Description</p>,
+        cell: ({ getValue }) => <span className="truncate line-clamp-2"><Badge>{String(getValue())}</Badge></span>,
       }
     ], []),
     refineCoreProps: {
@@ -32,8 +69,15 @@ const SubjectsList = () => {
         pageSize: 10,
         mode: 'server',
       },
-        filters: {},
-        sorters: {},
+        filters: {
+          permanent: [...departmentFilters, ...searchFilters]
+        },
+        sorters: {
+          initial: [{
+            field: 'id',
+            order: 'desc'
+          }]
+        },
     }
     
   }
