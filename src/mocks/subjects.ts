@@ -42,7 +42,7 @@ export const mockSubjects: MockSubject[] = [
       "Mechanics, waves, and thermodynamics. Introduction to fundamental physical principles and problem-solving techniques.",
   },
   {
-    id: 505,
+    id: 506,
     courseCode: "CHEM110",
     name: "General Chemistry",
     department: "Chemistry",
