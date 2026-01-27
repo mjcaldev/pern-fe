@@ -1,38 +1,42 @@
-import {
-  BaseRecord,
-  DataProvider,
-  GetListParams,
-  GetListResponse,
-} from "@refinedev/core";
-import type { Subject } from "@/types";
-import { mockSubjects, type MockSubject } from "@/mocks/subjects";
+import { createDataProvider, CreateDataProviderOptions } from "@refinedev/rest";
+import { BACKEND_BASE_URL } from "@/constants";
+import { ListResponse } from "@/types";
 
-const toSubjectRecord = (s: MockSubject): Subject => ({
-  id: s.id,
-  code: s.courseCode,
-  name: s.name,
-  department: s.department,
-  description: s.description,
-  createdAt: new Date().toISOString(),
-});
+const options: CreateDataProviderOptions = {
+  getList: {
+    getEndpoint: ({ resource }) => resource,
+    buildQueryParams: ({ filters, resource, pagination }) => {
+      const page = pagination?.currentPage ?? 1;
+      const pageSize = pagination?.pageSize ?? 10;
 
-export const dataProvider: DataProvider = {
-  getList: async <TData extends BaseRecord = BaseRecord>({
-    resource,
-  }: GetListParams): Promise<GetListResponse<TData>> => {
-      if (resource !== 'subjects') {
-        return {data: [] as TData[], total: 0};
-      }
-      const subjects = mockSubjects.map(toSubjectRecord);
+      const params: Record<string, string | number> = { page, limit: pageSize };
 
-      return {
-        data: subjects as unknown as TData[],
-        total: subjects.length,
-      }
+      filters?.forEach((filter) => {
+        const field = 'field' in filter ? filter.field: '';
+
+        const value = String(filter.value);
+
+        if (resource === 'subjects') {
+          if (field === 'department') params.department = value;
+          if (field === 'name' || field === 'code') params.search = value;
+        }
+      });
+
+      return params;
     },
-    getOne: async () => {throw new Error('This function is not present in the mock data provider')},
-    create: async () => {throw new Error('This function is not present in the mock data provider')},
-    update: async () => {throw new Error('This function is not present in the mock data provider')},
-    deleteOne: async () => {throw new Error('This function is not present in the mock data provider')},
-    getApiUrl: () => '',
-  }
+        mapResponse: async (response) => {
+          const payload: ListResponse = await response.json();
+
+          return payload.data ?? [];
+        },
+          getTotalCount: async (response) => {
+            const payload: ListResponse = await response.json();
+
+            return payload.pagination?.total ?? payload.data?.length ?? 0;
+          }
+      }
+}
+
+const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
+
+    export { dataProvider };
