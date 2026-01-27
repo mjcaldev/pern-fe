@@ -25,7 +25,7 @@ const options: CreateDataProviderOptions = {
       return params;
     },
     mapResponse: async (response) => {
-      const payload: ListResponse = await response.json();
+      const payload: ListResponse = await response.clone().json();
 
       return payload.data ?? [];
     },
