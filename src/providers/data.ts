@@ -5,14 +5,14 @@ import { ListResponse } from "@/types";
 const options: CreateDataProviderOptions = {
   getList: {
     getEndpoint: ({ resource }) => resource,
-    buildQueryParams: ({ filters, resource, pagination }) => {
+    buildQueryParams: async ({ filters, resource, pagination }) => {
       const page = pagination?.currentPage ?? 1;
       const pageSize = pagination?.pageSize ?? 10;
 
       const params: Record<string, string | number> = { page, limit: pageSize };
 
       filters?.forEach((filter) => {
-        const field = 'field' in filter ? filter.field: '';
+        const field = 'field' in filter ? filter.field : '';
 
         const value = String(filter.value);
 
@@ -24,19 +24,20 @@ const options: CreateDataProviderOptions = {
 
       return params;
     },
-        mapResponse: async (response) => {
-          const payload: ListResponse = await response.json();
+    mapResponse: async (response) => {
+      const payload: ListResponse = await response.json();
 
-          return payload.data ?? [];
-        },
-          getTotalCount: async (response) => {
-            const payload: ListResponse = await response.json();
+      return payload.data ?? [];
+    },
+    getTotalCount: async (response) => {
+      // Clone the response to avoid consuming the body stream twice
+      const payload: ListResponse = await response.clone().json();
 
-            return payload.pagination?.total ?? payload.data?.length ?? 0;
-          }
-      }
+      return payload.pagination?.total ?? payload.data?.length ?? 0;
+    }
+  }
 }
 
 const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
 
-    export { dataProvider };
+export { dataProvider };
