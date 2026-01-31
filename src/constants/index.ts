@@ -34,14 +34,33 @@ function getRequiredEnvVar(key: string): string {
   return value;
 }
 
-export const CLOUDINARY_UPLOAD_URL = getRequiredEnvVar('VITE_CLOUDINARY_UPLOAD_URL');
-export const CLOUDINARY_CLOUD_NAME = getRequiredEnvVar('VITE_CLOUDINARY_CLOUD_NAME');
+/**
+ * Retrieves an optional environment variable.
+ * Returns undefined if the variable is missing or undefined.
+ * 
+ * @param key - The environment variable key
+ * @returns The environment variable value or undefined
+ */
+function getOptionalEnvVar(key: string): string | undefined {
+  const value = import.meta.env[key];
+  return value === undefined || value === null || value === '' ? undefined : value;
+}
+
+// Cloudinary constants - optional, will be undefined if not configured
+// This allows the app to run without Cloudinary configured until it's actually needed
+// When Cloudinary integration is added, these should be set in .env
+export const CLOUDINARY_UPLOAD_URL = getOptionalEnvVar('VITE_CLOUDINARY_UPLOAD_URL');
+export const CLOUDINARY_CLOUD_NAME = getOptionalEnvVar('VITE_CLOUDINARY_CLOUD_NAME');
+export const CLOUDINARY_UPLOAD_PRESET = getOptionalEnvVar('VITE_CLOUDINARY_UPLOAD_PRESET');
+
+// Required constants - these are needed for the app to function
 export const BACKEND_BASE_URL = getRequiredEnvVar('VITE_BACKEND_BASE_URL');
 
-export const BASE_URL = getRequiredEnvVar('VITE_API_URL');
-export const ACCESS_TOKEN_KEY = getRequiredEnvVar('VITE_ACCESS_TOKEN_KEY');
-export const REFRESH_TOKEN_KEY = getRequiredEnvVar('VITE_REFRESH_TOKEN_KEY');
+// Optional constants - for future authentication features
+// These will be undefined if not configured, allowing the app to run without auth initially
+export const BASE_URL = getOptionalEnvVar('VITE_API_URL');
+export const ACCESS_TOKEN_KEY = getOptionalEnvVar('VITE_ACCESS_TOKEN_KEY');
+export const REFRESH_TOKEN_KEY = getOptionalEnvVar('VITE_REFRESH_TOKEN_KEY');
 
-export const REFRESH_TOKEN_URL = `${BASE_URL}/refresh-token`;
-
-export const CLOUDINARY_UPLOAD_PRESET = getRequiredEnvVar('VITE_CLOUDINARY_UPLOAD_PRESET');
+// REFRESH_TOKEN_URL is only defined if BASE_URL is set
+export const REFRESH_TOKEN_URL = BASE_URL ? `${BASE_URL}/refresh-token` : undefined;
