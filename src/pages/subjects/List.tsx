@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DEPARTMENTS_OPTIONS } from "@/constants"
+import { DEPARTMENT_OPTIONS } from "@/constants"
 import { CreateButton } from "@/components/refine-ui/buttons/create"
 import { Subject } from "@/types"
 import { useTable } from "@refinedev/react-table"
@@ -112,7 +112,7 @@ const SubjectsList = () => {
                 <SelectItem value="all">
                   All Departments
                 </SelectItem>
-                {DEPARTMENTS_OPTIONS.map(department => (
+                {DEPARTMENT_OPTIONS.map(department => (
                   <SelectItem key={department.value} value={department.value}>
                     {department.label}
                   </SelectItem>

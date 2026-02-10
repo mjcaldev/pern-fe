@@ -54,6 +54,22 @@ const create = () => {
 
   const bannerPublicId = form.watch("bannerCldPubId");
 
+  const setBannerImage = (file, field) => {
+    if (file) {
+      field.onChange(file.url);
+      form.setValue("bannerCldPubId", file.publicId, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+    } else {
+      field.onChange('');
+      form.setValue('bannerCldPubId', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+    }
+  }
+
   const onSubmit = async (values: z.infer<typeof classSchema>) => {
     try {
       await onFinish(values);
@@ -134,22 +150,8 @@ const create = () => {
                                 }
                               : null
                           }
-                          onChange={(file) => {
-                            if (file) {
-                              field.onChange(file.url);
-                              form.setValue("bannerCldPubId", file.publicId, {
-                                shouldValidate: true,
-                                shouldDirty: true,
-                              });
-                            } else {
-                              field.onChange("");
-                              form.setValue("bannerCldPubId", "", {
-                                shouldValidate: true,
-                                shouldDirty: true,
-                              });
-                            }
-                          }}
-                        />
+                          onChange={(file: any, field: any) => setBannerImage(file, field)}
+                          />
                       </FormControl>
                       <FormMessage />
                       {errors.bannerCldPubId && !errors.bannerUrl && (
