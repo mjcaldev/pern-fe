@@ -47,7 +47,7 @@ export type Subject = {
           options: Record<string, unknown>,
           callback: (
             error: unknown,
-            result: CloudinaryUploadWidgetResults
+            result?: CloudinaryUploadWidgetResults
           ) => void
         ) => CloudinaryWidget;
       };

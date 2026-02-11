@@ -28,6 +28,7 @@ import { useBack, useList } from "@refinedev/core";
 import { Loader2 } from "lucide-react";
 import { classSchema } from "@/lib/schema";
 import UploadWidget from "@/components/upload-widget";
+import type { UploadWidgetValue } from "@/types";
 import { Subject, User } from "@/types";
 import z from "zod";
 
@@ -54,7 +55,7 @@ const create = () => {
 
   const bannerPublicId = form.watch("bannerCldPubId");
 
-  const setBannerImage = (file, field) => {
+  const setBannerImage = (file: UploadWidgetValue | null, field: { onChange: (value: string) => void }) => {
     if (file) {
       field.onChange(file.url);
       form.setValue("bannerCldPubId", file.publicId, {
@@ -150,7 +151,7 @@ const create = () => {
                                 }
                               : null
                           }
-                          onChange={(file: any, field: any) => setBannerImage(file, field)}
+                          onChange={(file) => setBannerImage(file, field)}
                           />
                       </FormControl>
                       <FormMessage />
