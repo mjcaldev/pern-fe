@@ -1,70 +1,121 @@
 import { createDataProvider, CreateDataProviderOptions } from "@refinedev/rest";
+import type { HttpError } from "@refinedev/core";
+
 import { BACKEND_BASE_URL } from "@/constants";
-import { ListResponse } from "@/types";
+import { CreateResponse, GetOneResponse, ListResponse } from "@/types";
 
-async function parseJsonOrThrow<T>(response: Response): Promise<T> {
-  const contentType = response.headers.get("content-type") ?? "";
-  const isJson = contentType.toLowerCase().includes("application/json");
+if (!BACKEND_BASE_URL) {
+  throw new Error(
+    "BACKEND_BASE_URL is not configured. Please set the VITE_BACKEND_BASE_URL in your .env file."
+  );
+}
 
-  if (!isJson) {
-    const bodyPreview = await response
-      .clone()
-      .text()
-      .then((t) => t.slice(0, 400))
-      .catch(() => "");
+const buildHttpError = async (response: Response): Promise<HttpError> => {
+  let message = response.statusText || "Request failed.";
 
-    // This usually happens when an API route is missing and Express returns
-    // an HTML error page (<!DOCTYPE ...>), but the client tries to parse JSON.
-    throw new Error(
-      [
-        `Expected JSON but received "${contentType || "unknown content-type"}".`,
-        `Status: ${response.status || "unknown"} ${response.statusText || ""}`.trim(),
-        `URL: ${response.url || "unknown"}`,
-        bodyPreview ? `Body (first 400 chars): ${bodyPreview}` : undefined,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    );
+  try {
+    const payload = (await response.json()) as { message?: string };
+    if (payload?.message) message = payload.message;
+  } catch {
+    // ignore json parse errors
   }
 
-  return (await response.clone().json()) as T;
+  return {
+    message,
+    statusCode: response.status,
+  };
+};
+
+async function parseJsonOrThrow<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    throw await buildHttpError(response);
+  }
+
+  if (response.status === 204) return {} as T;
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return {} as T;
+  }
 }
 
 const options: CreateDataProviderOptions = {
   getList: {
     getEndpoint: ({ resource }) => resource,
-    buildQueryParams: async ({ filters, resource, pagination }) => {
-      const page = pagination?.currentPage ?? 1;
-      const pageSize = pagination?.pageSize ?? 10;
 
-      const params: Record<string, string | number> = { page, limit: pageSize };
+    buildQueryParams: async ({ resource, pagination, filters }) => {
+      const params: Record<string, string | number> = {};
+
+      if (pagination?.mode !== "off") {
+        const page = pagination?.currentPage ?? 1;
+        const pageSize = pagination?.pageSize ?? 10;
+
+        params.page = page;
+        params.limit = pageSize;
+      }
 
       filters?.forEach((filter) => {
-        const field = 'field' in filter ? filter.field : '';
-
+        const field = "field" in filter ? filter.field : "";
         const value = String(filter.value);
 
-        if (resource === 'subjects') {
-          if (field === 'department') params.department = value;
-          if (field === 'name' || field === 'code') params.search = value;
+        if (field === "role") {
+          params.role = value;
+        }
+
+        if (resource === "departments") {
+          if (field === "name" || field === "code") params.search = value;
+        }
+
+        if (resource === "users") {
+          if (field === "search" || field === "name" || field === "email") {
+            params.search = value;
+          }
+        }
+
+        if (resource === "subjects") {
+          if (field === "department") params.department = value;
+          if (field === "name" || field === "code") params.search = value;
+        }
+
+        if (resource === "classes") {
+          if (field === "name") params.search = value;
+          if (field === "subject") params.subject = value;
+          if (field === "teacher") params.teacher = value;
         }
       });
 
       return params;
     },
-    mapResponse: async (response) => {
-      const payload = await parseJsonOrThrow<ListResponse>(response);
 
+    mapResponse: async (response) => {
+      const payload = await parseJsonOrThrow<ListResponse>(response.clone());
       return payload.data ?? [];
     },
-    getTotalCount: async (response) => {
-      // Clone the response to avoid consuming the body stream twice
-      const payload = await parseJsonOrThrow<ListResponse>(response);
 
+    getTotalCount: async (response) => {
+      const payload = await parseJsonOrThrow<ListResponse>(response.clone());
       return payload.pagination?.total ?? payload.data?.length ?? 0;
-    }
-  }
-}
+    },
+  },
+
+  create: {
+    getEndpoint: ({ resource }) => resource,
+    buildBodyParams: async ({ variables }) => variables,
+    mapResponse: async (response) => {
+      const json = await parseJsonOrThrow<CreateResponse>(response);
+      return json.data ?? {};
+    },
+  },
+
+  getOne: {
+    getEndpoint: ({ resource, id }) => `${resource}/${id}`,
+    mapResponse: async (response) => {
+      const json = await parseJsonOrThrow<GetOneResponse>(response);
+      return json.data ?? {};
+    },
+  },
+};
 
 const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
 

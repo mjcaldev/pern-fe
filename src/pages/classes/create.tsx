@@ -151,7 +151,7 @@ const create = () => {
                                 }
                               : null
                           }
-                          onChange={(file) => setBannerImage(file, field)}
+                          onChange={(file: any) => setBannerImage(file, field)}
                           />
                       </FormControl>
                       <FormMessage />
