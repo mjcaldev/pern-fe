@@ -25,12 +25,129 @@ import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb";
 
 import { Textarea } from "@/components/ui/textarea";
 import { useBack, useList } from "@refinedev/core";
-import { Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { classSchema } from "@/lib/schema";
 import UploadWidget from "@/components/upload-widget";
 import type { UploadWidgetValue } from "@/types";
 import { Subject, User } from "@/types";
 import z from "zod";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+
+function getQueryErrorMessage(error: unknown): string | undefined {
+  if (!error) return undefined;
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message || "Unknown error";
+  if (typeof error === "object") {
+    const e = error as Record<string, unknown>;
+    const msg = e.message;
+    if (typeof msg === "string" && msg.trim()) return msg;
+    const status = e.statusCode;
+    if (typeof status === "number") return `Request failed (${status})`;
+  }
+  return "Unknown error";
+}
+
+type ComboboxOption = { value: string; label: string; keywords?: string[] };
+
+function FormCombobox({
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  disabled,
+  searchPlaceholder = "Search...",
+  emptyText = "No results found.",
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: ComboboxOption[];
+  placeholder: string;
+  disabled?: boolean;
+  searchPlaceholder?: string;
+  emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (disabled) return;
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          className={cn(
+            "w-full justify-between",
+            !selected?.label && "text-muted-foreground"
+          )}
+          aria-expanded={open}
+          role="combobox"
+        >
+          <span
+            className="truncate"
+          >
+            {selected?.label ?? placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+      >
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {options.map((opt) => (
+                <CommandItem
+                  key={opt.value}
+                  value={opt.label}
+                  keywords={opt.keywords ?? opt.label.split(" ")}
+                  onSelect={() => {
+                    onValueChange(opt.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === opt.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {opt.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const create = () => {
   const back = useBack();
@@ -108,6 +225,23 @@ const create = () => {
   const subjects = subjectsQuery.data?.data || [];
   const subjectsLoading = subjectsQuery.isLoading;
 
+  const subjectsLoadError =
+    (subjectsQuery as any)?.isError && getQueryErrorMessage(subjectsQuery.error);
+  const teachersLoadError =
+    (teachersQuery as any)?.isError && getQueryErrorMessage(teachersQuery.error);
+
+  useEffect(() => {
+    if ((subjectsQuery as any)?.isError) {
+      console.error("[CreateClass] Failed to load subjects:", subjectsQuery.error);
+    }
+  }, [(subjectsQuery as any)?.isError, subjectsQuery.error]);
+
+  useEffect(() => {
+    if ((teachersQuery as any)?.isError) {
+      console.error("[CreateClass] Failed to load teachers:", teachersQuery.error);
+    }
+  }, [(teachersQuery as any)?.isError, teachersQuery.error]);
+
   return (
     <CreateView className="class-view">
       <Breadcrumb />
@@ -120,8 +254,8 @@ const create = () => {
 
       <Separator />
 
-      <div className="my-4 flex items-center">
-        <Card className="class-form-card">
+      <div className="my-4 w-full px-4 sm:px-6 lg:px-10">
+        <Card className="class-form-card mx-auto w-full max-w-4xl lg:max-w-5xl">
           <CardHeader className="relative z-10">
             <CardTitle className="text-2xl pb-0 font-bold text-gradient-orange">
               Fill out form
@@ -192,30 +326,43 @@ const create = () => {
                         <FormLabel>
                           Subject <span className="text-orange-600">*</span>
                         </FormLabel>
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(Number(value))
-                          }
-                          value={field.value?.toString()}
-                          disabled={subjectsLoading}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a subject" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {subjects.map((subject) => (
-                              <SelectItem
-                                key={subject.id}
-                                value={subject.id.toString()}
-                              >
-                                {subject.name} ({subject.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <FormCombobox
+                            value={
+                              field.value !== undefined && field.value !== null
+                                ? String(field.value)
+                                : ""
+                            }
+                            onValueChange={(value) =>
+                              field.onChange(Number(value))
+                            }
+                            options={subjects.map((s) => ({
+                              value: String(s.id),
+                              label: `${s.name} (${s.code})`,
+                              keywords: [s.name, s.code],
+                            }))}
+                            placeholder={
+                              subjectsLoading
+                                ? "Loading subjects..."
+                                : subjectsLoadError
+                                ? "Failed to load subjects"
+                                : "Select a subject"
+                            }
+                            disabled={subjectsLoading || !!subjectsLoadError}
+                            searchPlaceholder="Search subjects..."
+                            emptyText={
+                              subjectsLoadError
+                                ? `Failed to load subjects${subjectsLoadError ? `: ${subjectsLoadError}` : ""}`
+                                : "No subjects found."
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
+                        {subjectsLoadError && (
+                          <p className="text-destructive text-sm">
+                            {subjectsLoadError}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -228,25 +375,37 @@ const create = () => {
                         <FormLabel>
                           Teacher <span className="text-orange-600">*</span>
                         </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          disabled={teachersLoading}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a teacher" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {teachers.map((teacher) => (
-                              <SelectItem key={teacher.id} value={teacher.id}>
-                                {teacher.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <FormCombobox
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={field.onChange}
+                            options={teachers.map((t) => ({
+                              value: t.id,
+                              label: t.name,
+                              keywords: [t.name, t.email ?? ""].filter(Boolean),
+                            }))}
+                            placeholder={
+                              teachersLoading
+                                ? "Loading teachers..."
+                                : teachersLoadError
+                                ? "Failed to load teachers"
+                                : "Select a teacher"
+                            }
+                            disabled={teachersLoading || !!teachersLoadError}
+                            searchPlaceholder="Search teachers..."
+                            emptyText={
+                              teachersLoadError
+                                ? `Failed to load teachers${teachersLoadError ? `: ${teachersLoadError}` : ""}`
+                                : "No teachers found."
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
+                        {teachersLoadError && (
+                          <p className="text-destructive text-sm">
+                            {teachersLoadError}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />

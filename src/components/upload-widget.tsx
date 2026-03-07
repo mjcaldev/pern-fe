@@ -164,37 +164,56 @@ const UploadWidget = ({ value = null, onChange, disabled = false }: UploadWidget
   return (
     <div className="space-y-2">
       {preview ? (
-        <div className="upload-preview">
-          <img src={preview.url} alt="Uploaded image" />
+        <div className="relative w-full overflow-hidden rounded-xl border bg-card">
+          <img
+            src={preview.url}
+            alt="Uploaded image"
+            className="h-44 w-full object-cover"
+          />
           <button
             type="button"
             onClick={removeFromCloundinary}
             disabled={isRemoving}
-            className="btn btn-ghost btn-sm btn-circle absolute top-2 right-3 z-10"
+            className={[
+              "absolute right-2 top-2 z-10 inline-flex items-center justify-center",
+              "h-9 w-9 rounded-md border bg-background/70 backdrop-blur",
+              "text-foreground hover:bg-background/85 transition-colors",
+              "disabled:opacity-60 disabled:pointer-events-none",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            ].join(" ")}
           >
             <Trash2 className="size-4" />
           </button>
         </div>
-      ): <div 
-      className="upload-dropzone"
-      role="button"
-      tabIndex={0}
-      onClick={openWidget}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          openWidget();
-        }
-      }}
-      >
-        <div className="upload-prompt">
-          <UploadCloud className="icon" />
-          <div>
-            <p>Click to upload photo</p>
-            <p>JPG, PNG, up to 5 MB </p>
-          </div> 
+      ) : (
+        <div
+          className={[
+            "w-full rounded-xl border border-dashed",
+            "bg-muted/15 hover:bg-muted/25 transition-colors",
+            "px-6 py-10",
+            "cursor-pointer select-none",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            disabled ? "opacity-60 pointer-events-none" : "",
+          ].join(" ")}
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          onClick={openWidget}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openWidget();
+            }
+          }}
+        >
+          <div className="mx-auto flex max-w-md items-center justify-center gap-3 text-center">
+            <UploadCloud className="h-9 w-9 text-primary" />
+            <div className="text-left">
+              <p className="font-semibold text-primary">Click to upload photo</p>
+              <p className="text-sm text-muted-foreground">PNG, JPG up to 5 MB</p>
+            </div>
           </div>
-      </div>}
+        </div>
+      )}
     </div>
   )
 }
