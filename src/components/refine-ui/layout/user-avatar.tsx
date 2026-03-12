@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useGetIdentity } from "@refinedev/core";
+import { useActiveAuthProvider, useGetIdentity } from "@refinedev/core";
 
 type User = {
   id: number;
@@ -13,7 +13,25 @@ type User = {
 };
 
 export function UserAvatar() {
-  const { data: user, isLoading: userIsLoading } = useGetIdentity<User>();
+  const authProvider = useActiveAuthProvider();
+  const identityEnabled = !!authProvider?.getIdentity;
+
+  const { data: user, isLoading: userIsLoading } = useGetIdentity<User>({
+    queryOptions: {
+      enabled: identityEnabled,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 0,
+    },
+  });
+
+  if (!identityEnabled) {
+    return (
+      <Avatar className={cn("h-10", "w-10")}>
+        <AvatarFallback>U</AvatarFallback>
+      </Avatar>
+    );
+  }
 
   if (userIsLoading || !user) {
     return <Skeleton className={cn("h-10", "w-10", "rounded-full")} />;
